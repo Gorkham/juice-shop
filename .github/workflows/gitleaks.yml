@@ -1,0 +1,33 @@
+name: Gitleaks Scan
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+  # (Opcional) escaneo programado semanal
+  schedule:
+    - cron: "0 6 * * 1" # todos los lunes a las 06:00 UTC
+
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      # 1) Clona el repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # importante para escanear todo el historial
+
+      # 2) Ejecuta Gitleaks
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: detect --source . --redact --report-format json --report-path gitleaks-report.json
+
+      # 3) Sube el reporte como artifact
+      - name: Upload Gitleaks report
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json

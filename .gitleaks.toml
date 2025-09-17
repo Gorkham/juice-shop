@@ -1,0 +1,17 @@
+title = "Custom Gitleaks Config - Ignorar Binarios"
+
+[allowlist]
+description = "Ignorar archivos binarios comunes"
+paths = [
+  '''(?i)\.docx$''',
+  '''(?i)\.jpg$''',
+  '''(?i)\.jpeg$''',
+  '''(?i)\.png$''',
+  '''(?i)\.gif$''',
+  '''(?i)\.pdf$''',
+  '''(?i)\.exe$''',
+  '''(?i)\.dll$''',
+  '''(?i)\.zip$''',
+  '''(?i)\.tar$''',
+  '''(?i)\.gz$'''
+]
