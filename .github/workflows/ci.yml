@@ -145,8 +145,8 @@ jobs:
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b #v4.5.0
         with:
           name: api-test-lcov
-          path: |
-            api-lcov.info
+        path: |
+          api-lcov.info
 
   coverage-report:
     needs: [test, api-test]
@@ -180,11 +180,18 @@ jobs:
           node-version: ${{ env.NODE_DEFAULT_VERSION }}
           cache: 'npm'
           cache-dependency-path: package-lock.json
-      # ⬇️ Instala devDependencies para que exista `nyc`
       - name: "Install dependencies (incl dev)"
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
         env:
           NODE_ENV: development
+      # Fuerza herramientas de test por si no vinieran en el lockfile
+      - name: "Ensure test tools (nyc/mocha/ts-node/source-map-support)"
+        run: npm i -D nyc mocha ts-node source-map-support
       - name: "Check nyc"
         run: npx nyc --version
       - name: "Execute server tests for each custom configuration"
@@ -231,7 +238,7 @@ jobs:
           browser: ${{ matrix.browser }}
           start: npm start
           wait-on: http://localhost:3000
-          record: false                 # ← evita error de Record Key
+          record: false
           group: ${{ matrix.browser }} @ ${{ matrix.os }}
       - name: "Execute end-to-end tests on Mac"
         if: ${{ matrix.os == 'macos-latest' }}
@@ -241,7 +248,7 @@ jobs:
           browser: ${{ matrix.browser }}
           start: npm start
           wait-on: http://localhost:3000
-          record: false                 # ← evita error de Record Key
+          record: false
           group: ${{ matrix.browser }} @ ${{ matrix.os }}
 
   smoke-test:
@@ -305,12 +312,12 @@ jobs:
       - name: "Set tag & labels for ${{ github.ref }}"
         run: |
           if [ "$GITHUB_REF" == "refs/heads/master" ]; then
-          echo "DOCKER_TAG=latest" >> $GITHUB_ENV
+            echo "DOCKER_TAG=latest" >> $GITHUB_ENV
           else
-          echo "DOCKER_TAG=snapshot" >> $GITHUB_ENV
+            echo "DOCKER_TAG=snapshot" >> $GITHUB_ENV
           fi
-          echo "VCS_REF=`git rev-parse --short HEAD`" >> $GITHUB_ENV
-          echo "BUILD_DATE=`date -u +”%Y-%m-%dT%H:%M:%SZ”`" >> $GITHUB_ENV
+          echo "VCS_REF=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "BUILD_DATE=$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")" >> $GITHUB_ENV
       - name: "Build and push for AMD64 and ARM64 processors"
         uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 #v6.1.0
         with:
@@ -337,11 +344,11 @@ jobs:
       - name: "Set Heroku app & branch for ${{ github.ref }}"
         run: |
           if [ "$GITHUB_REF" == "refs/heads/master" ]; then
-          echo "HEROKU_APP=juice-shop" >> $GITHUB_ENV
-          echo "HEROKU_BRANCH=master" >> $GITHUB_ENV
+            echo "HEROKU_APP=juice-shop" >> $GITHUB_ENV
+            echo "HEROKU_BRANCH=master" >> $GITHUB_ENV
           else
-          echo "HEROKU_APP=juice-shop-staging" >> $GITHUB_ENV
-          echo "HEROKU_BRANCH=develop" >> $GITHUB_ENV
+            echo "HEROKU_APP=juice-shop-staging" >> $GITHUB_ENV
+            echo "HEROKU_BRANCH=develop" >> $GITHUB_ENV
           fi
       - name: "Deploy ${{ github.ref }} to Heroku"
         uses: akhileshns/heroku-deploy@581dd286c962b6972d427fcf8980f60755c15520 #v3.13.15
