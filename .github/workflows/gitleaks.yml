@@ -5,29 +5,52 @@ on:
     branches: [ "main", "develop" ]
   pull_request:
     branches: [ "main", "develop" ]
-  # (Opcional) escaneo programado semanal
+  # (opcional) auditoría semanal
   schedule:
-    - cron: "0 6 * * 1" # todos los lunes a las 06:00 UTC
+    - cron: "0 6 * * 1"  # lunes 06:00 UTC
 
 jobs:
-  gitleaks:
+  # PR/Push: SOLO árbol de trabajo (evita el error del .docx del historial)
+  gitleaks-working-tree:
     runs-on: ubuntu-latest
     steps:
-      # 1) Clona el repo
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # importante para escanear todo el historial
+          fetch-depth: 0
 
-      # 2) Ejecuta Gitleaks
-      - name: Run Gitleaks
+      - name: Run Gitleaks (no history)
         uses: gitleaks/gitleaks-action@v2
         with:
-          args: detect --source . --redact --report-format json --report-path gitleaks-report.json
+          args: detect --source . --no-git --redact --report-format json --report-path gitleaks-report.json -l error --no-banner
 
-      # 3) Sube el reporte como artifact
-      - name: Upload Gitleaks report
+      - name: Upload report
         uses: actions/upload-artifact@v4
         with:
           name: gitleaks-report
           path: gitleaks-report.json
+
+  # (opcional) Historial completo solo en el schedule
+  gitleaks-history:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks (full history, excluye binarios)
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: >
+            detect --source . --redact
+            --report-format json --report-path gitleaks-history.json
+            --log-opts="-- . ':(exclude,glob)**/*.docx' ':(exclude,glob)**/*.pdf' ':(exclude,glob)**/*.jpg' ':(exclude,glob)**/*.jpeg' ':(exclude,glob)**/*.png' ':(exclude,glob)**/*.gif' ':(exclude,glob)**/*.zip' ':(exclude,glob)**/*.tar' ':(exclude,glob)**/*.gz'"
+            -l error --no-banner
+
+      - name: Upload history report
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-history
+          path: gitleaks-history.json
